@@ -1,6 +1,5 @@
 <template>
   <div class="min-h-screen bg-gray-100 pt-20">
-    <!-- Search -->
     <div class="flex justify-center mb-6">
       <el-input
         v-model="search"
@@ -12,15 +11,12 @@
       />
     </div>
 
-    <!-- Product Grid + Cart -->
     <div class="h-[70vh] px-6 flex gap-4">
-      <!-- Product List -->
       <div class="w-2/3 bg-white rounded-xl shadow p-4 overflow-y-auto">
         <h2 class="text-lg font-semibold mb-4">Products</h2>
         <Productlist :products="filteredProducts" @add-to-cart="addToCart" />
       </div>
 
-      <!-- Cart -->
       <div class="w-1/3 bg-white rounded-xl shadow p-4 overflow-y-auto">
         <Cart
           :cart="cart"
@@ -35,29 +31,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import Productlist from '@/components/Productlist.vue'
-import Cart from '@/components/cart.vue'
+import Cart from '@/components/Cart.vue'
 import type { CartItem, Product } from '@/type'
-import { useCartStore } from '@/stores/useCartStore'
-const cartStore = useCartStore()
+import { getAllProduct } from '@/services/product'
 const search = ref('')
-const products = ref<Product[]>([
-  { id: 1, name: 'Apple', description: 'Fresh and crisp.', qty: 3 },
-  { id: 2, name: 'Banana', description: 'Sweet and soft.', qty: 5 },
-  { id: 3, name: 'Cherry', description: 'Juicy and red.', qty: 0 },
-  { id: 4, name: 'Mango', description: 'Tropical and delicious.', qty: 2 },
-  { id: 5, name: 'Orange', description: 'Zesty and tangy.', qty: 1 },
-  { id: 6, name: 'Grapes', description: 'Small and sweet.', qty: 4 },
-])
-
+const products = ref<Product[]>([])
 const cart = ref<CartItem[]>([])
 
-const filteredProducts = computed(() =>
-  products.value.filter((p) => p.name.toLowerCase().includes(search.value.toLowerCase())),
-)
-
+async function handleGetProduct() {
+  try {
+    const response = await getAllProduct()
+    products.value = response.data.data
+    console.log(products.value)
+  } catch (e: any) {
+    throw new Error(e)
+  }
+}
 function getProduct(id: number): Product | undefined {
   return products.value.find((p) => p.id === id)
 }
@@ -102,4 +94,10 @@ function removeProduct(item: CartItem) {
   }
   cart.value = cart.value.filter((p) => p.id !== item.id)
 }
+onMounted(() => {
+  handleGetProduct()
+})
+const filteredProducts = computed(() =>
+  products.value.filter((p) => p.name.toLowerCase().includes(search.value.toLowerCase())),
+)
 </script>

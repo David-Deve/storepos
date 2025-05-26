@@ -36,17 +36,7 @@
 <script setup lang="ts">
 import { defineProps, defineEmits } from 'vue'
 
-interface CartItem {
-  id: number
-  name: string
-  description: string
-  qty: number
-}
-
-interface Product {
-  id: number
-  qty: number
-}
+import type { Product, CartItem } from '@/type.ts'
 
 const props = defineProps<{ cart: CartItem[]; products: Product[] }>()
 const emit = defineEmits(['increase-qty', 'decrease-qty', 'remove-product'])
