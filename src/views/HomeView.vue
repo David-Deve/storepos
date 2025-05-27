@@ -1,19 +1,19 @@
 <template>
-  <div class="min-h-screen bg-gray-100 pt-20">
+  <div class="min-h-screen bg-background pt-20">
     <div class="flex justify-center mb-6">
       <el-input
         v-model="search"
         placeholder="Search for an item..."
         size="large"
-        class="w-full max-w-2xl"
+        class="w-full max-w-2xl h-14 custom-radius"
         :prefix-icon="Search"
         clearable
       />
     </div>
 
     <div class="h-[70vh] px-6 flex gap-4">
-      <div class="w-2/3 bg-white rounded-xl shadow p-4 overflow-y-auto">
-        <h2 class="text-lg font-semibold mb-4">Products</h2>
+      <div class="w-2/3 bg-white rounded-3xl shadow p-4 overflow-y-auto">
+        <h2 class="text-lg font-semibold mb-4 font-gagalin">Products</h2>
         <Productlist :products="filteredProducts" @add-to-cart="addToCart" />
       </div>
 
@@ -36,6 +36,7 @@ import { Search } from '@element-plus/icons-vue'
 import Productlist from '@/components/Productlist.vue'
 import Cart from '@/components/Cart.vue'
 import type { CartItem, Product } from '@/type'
+import { ElLoading } from 'element-plus'
 import { getAllProduct } from '@/services/product'
 const search = ref('')
 const products = ref<Product[]>([])
@@ -43,9 +44,16 @@ const cart = ref<CartItem[]>([])
 
 async function handleGetProduct() {
   try {
+    const loading = ElLoading.service({
+      lock: true,
+      text: 'Loading',
+      background: 'rgba(0, 0, 0, 0.7)',
+    })
+
     const response = await getAllProduct()
     products.value = response.data.data
     console.log(products.value)
+    loading.close()
   } catch (e: any) {
     throw new Error(e)
   }

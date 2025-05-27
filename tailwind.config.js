@@ -4,12 +4,12 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: '#FFFFFF', // Dark blue
-        secondary: '#C4C4C4', // Purple
-        hightlight: '#F8B602', // Yellow
-        linear: '#EB5757', // Gray
-        iconinactive: '#A098AE',
-        iconactive: '#FFFFFF',
+        primary: '#e2e2e2',
+        secondary: '#ff3131',
+        background: '#f5b300',
+      },
+      fontFamily: {
+        gagalin: ['Gagalin', 'sans-serif'],
       },
     },
   },
