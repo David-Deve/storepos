@@ -74,15 +74,36 @@
       <p class="font-black">Pay</p>
     </el-button>
   </el-dialog>
+
+  <div
+    ref="invoiceRef"
+    id="invoice"
+    class="p-6 bg-white text-black w-[600px] absolute -left-[9999px]"
+  >
+    <h2 class="text-xl font-bold mb-2">Invoice</h2>
+    <p>Order ID: {{ cartorder }}</p>
+    <p>Date: {{ new Date().toLocaleString() }}</p>
+
+    <ul class="my-4">
+      <li v-for="item in cart" :key="item.id" class="flex justify-between text-base">
+        <span>{{ item.name }} x{{ item.qty }}</span>
+        <span>${{ parseFloat(item.price) * item.qty }}</span>
+      </li>
+    </ul>
+
+    <div class="text-right font-bold mt-2">Total: ${{ totalPrice }}</div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import type { Product } from '@/type.ts'
-import { defineProps, defineEmits, ref, computed, onMounted } from 'vue'
+import { defineProps, defineEmits, ref, computed } from 'vue'
+import jsPDF from 'jspdf'
+import html2canvas from 'html2canvas'
 import { createOrder } from '@/services/cart'
 import { createOrderProduct } from '@/services/order'
-import router from '@/router'
 const outerVisible = ref(false)
+const invoiceRef = ref<HTMLElement | null>(null)
 const cartorder = ref<number | any>()
 const props = defineProps<{ cart: Product[]; products: Product[] }>()
 const emit = defineEmits(['increase-qty', 'decrease-qty', 'remove-product'])
@@ -90,6 +111,21 @@ const emit = defineEmits(['increase-qty', 'decrease-qty', 'remove-product'])
 function getProduct(id: number) {
   return props.products.find((p) => p.id === id)
 }
+async function generateInvoicePDF() {
+  if (!invoiceRef.value) return
+
+  const canvas = await html2canvas(invoiceRef.value)
+  const imgData = canvas.toDataURL('image/png')
+
+  const pdf = new jsPDF()
+  const imgProps = pdf.getImageProperties(imgData)
+  const pdfWidth = pdf.internal.pageSize.getWidth()
+  const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
+
+  pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
+  pdf.save('invoice.pdf')
+}
+
 async function createCart() {
   try {
     const response = await createOrder('general_customer')
@@ -111,9 +147,10 @@ async function confirmOrder(id: number, products: any[]) {
     }
     const response = await createOrderProduct(id, payload)
     console.log('Order submitted successfully:', response)
+    await generateInvoicePDF()
     setTimeout(() => {
       window.location.reload()
-    }, 1000)
+    }, 1500) // wait for PDF to generate before reload
   } catch (e: any) {
     console.error('Order submission failed:', e)
     throw new Error(e)
