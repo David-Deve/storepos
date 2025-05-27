@@ -69,7 +69,7 @@ function addToCart(product: Product) {
   if (item) {
     item.qty++
   } else {
-    cart.value.push({ ...product, qty: 1 })
+    cart.value.push({ ...product, qty: 1, price: product.price })
   }
 
   product.qty--

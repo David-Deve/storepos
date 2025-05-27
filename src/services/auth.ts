@@ -13,6 +13,11 @@ export async function login(name: String, password: String) {
     })
     return response.data
   } catch (e: any) {
+    ElNotification({
+      title: 'Fail',
+      message: 'Fail Login ',
+      type: 'error',
+    })
     throw new Error(e)
   }
 }

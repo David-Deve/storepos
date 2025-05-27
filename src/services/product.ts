@@ -1,8 +1,9 @@
 import VueCookies from 'vue-cookies'
 import request from './httpconfig'
 import { ElNotification } from 'element-plus'
-const token = VueCookies.get('storepos')
+
 export async function getAllProduct() {
+  const token = VueCookies.get('storepos')
   try {
     const response = await request.get('/product', {
       headers: { Authorization: `Bearer ${token}` },

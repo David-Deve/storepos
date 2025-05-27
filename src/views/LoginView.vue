@@ -71,7 +71,9 @@ async function handleLogin() {
     const response = await login(username.value, password.value)
     token.value = response.token
     VueCookies.set('storepos', token.value, '1d', '', '', true)
-    router.push('/home')
+    setTimeout(() => {
+      router.push('/home')
+    }, 3000)
   } catch (e: any) {
     throw new Error(e)
   }
