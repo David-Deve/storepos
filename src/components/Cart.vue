@@ -1,11 +1,23 @@
 <template>
   <div>
-    <h2 class="text-lg font-semibold mb-4 font-gagalin">Selected Products</h2>
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-lg font-semibold font-gagalin">Selected Products</h2>
+      <el-button
+        v-if="cart.length"
+        type="danger"
+        size="default"
+        plain
+        @click="$emit('clear-cart')"
+        class="font-gagalin"
+      >
+        Clear All
+      </el-button>
+    </div>
     <div v-if="cart.length">
       <ul>
         <li v-for="item in cart" :key="item.id" class="mb-3 text-sm">
           <div class="flex justify-between items-center">
-            <div class="grid grid-cols-3 gap-5 w-full">
+            <div class="grid grid-cols-4 gap-3 w-full">
               <div class="bg-background w-50 h-10 flex items-center justify-center rounded-xl">
                 <p class="text-xl font-gagalin">{{ item.name }}</p>
               </div>
@@ -25,14 +37,31 @@
                 </el-button>
               </div>
 
-              <el-button
-                class="buttonremove"
-                size="small"
-                plain
-                @click="$emit('remove-product', item)"
-              >
-                <p class="font-gagalin text-black">Remove</p>
-              </el-button>
+              <div class="flex items-center gap-2">
+                <el-button
+                  class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-sm font-gagalin"
+                  size="small"
+                  @click="openDiscountModal(item)"
+                >
+                  <span v-if="item.discount && item.discount > 0">{{ item.discount }}%</span>
+                  <span v-else>Discount</span>
+                </el-button>
+                <el-button
+                  class="buttonremove"
+                  size="small"
+                  plain
+                  @click="$emit('remove-product', item)"
+                >
+                  <p class="font-gagalin text-black">Remove</p>
+                </el-button>
+              </div>
+
+              <div class="text-right">
+                <p class="text-lg font-gagalin">${{ getItemTotal(item).toFixed(2) }}</p>
+                <p v-if="item.discount && item.discount > 0" class="text-sm text-green-600">
+                  Save: ${{ getItemDiscount(item).toFixed(2) }}
+                </p>
+              </div>
             </div>
           </div>
 
@@ -53,6 +82,66 @@
     </el-button>
   </div>
 
+  <!-- Discount Modal -->
+  <el-dialog
+    v-model="discountModalVisible"
+    title="Apply Discount"
+    width="400"
+    class="discount-dialog"
+    :close-on-click-modal="false"
+  >
+    <div class="text-center">
+      <div class="mb-4">
+        <h3 class="text-lg font-gagalin mb-2">{{ selectedItem?.name }}</h3>
+        <p class="text-gray-600">Original Price: ${{ getOriginalItemPrice(selectedItem) }}</p>
+      </div>
+
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-700 mb-2 font-gagalin">
+          Discount Percentage (%)
+        </label>
+        <el-input
+          v-model="discountInput"
+          type="number"
+          placeholder="Enter discount %"
+          :min="0"
+          :max="100"
+          class="w-full"
+        >
+          <template #append>%</template>
+        </el-input>
+      </div>
+
+      <div v-if="discountInput && discountInput > 0" class="mb-4 p-3 bg-green-50 rounded-lg">
+        <p class="text-sm text-gray-600">
+          New Price:
+          <span class="font-semibold text-green-600"
+            >${{ getDiscountedPrice(selectedItem).toFixed(2) }}</span
+          >
+        </p>
+        <p class="text-sm text-gray-600">
+          You Save:
+          <span class="font-semibold text-green-600"
+            >${{ getDiscountAmount(selectedItem).toFixed(2) }}</span
+          >
+        </p>
+      </div>
+    </div>
+
+    <template #footer>
+      <div class="flex justify-end gap-3">
+        <el-button @click="closeDiscountModal">Cancel</el-button>
+        <el-button
+          type="primary"
+          @click="applyDiscount"
+          :disabled="!discountInput || discountInput < 0 || discountInput > 100"
+        >
+          Apply Discount
+        </el-button>
+      </div>
+    </template>
+  </el-dialog>
+
   <el-dialog
     v-model="outerVisible"
     :title="`Confirm Order ID ${cartorder}`"
@@ -61,69 +150,170 @@
   >
     <span>{{ cartorder }}</span>
     <ul v-for="item in cart" :key="item.id">
-      <div class="flex justify-center items-center gap-2 text-xl">
-        <p>{{ item.name }}:</p>
-        <p>{{ item.qty }}</p>
-        <p>{{ item.price }}</p>
+      <div class="flex flex-col items-center text-xl">
+        <div class="flex justify-center items-center gap-2">
+          <p>{{ item.name }}:</p>
+          <p>{{ item.qty }}</p>
+          <p>${{ getItemTotal(item).toFixed(2) }}</p>
+          <span v-if="item.discount && item.discount > 0" class="text-green-600 text-sm">
+            ({{ item.discount }}% off)
+          </span>
+        </div>
+        <p v-if="item.discount && item.discount > 0" class="text-sm text-green-600">
+          Discount: ${{ getItemDiscount(item).toFixed(2) }}
+        </p>
       </div>
     </ul>
     <p class="text-2xl">
-      Total: <span class="text-green-700">{{ totalPrice }}$</span>
+      Total: <span class="text-green-700">${{ totalPrice.toFixed(2) }}</span>
     </p>
     <el-button type="success" class="mt-4 w-24" @click="confirmOrder(cartorder, cart)">
       <p class="font-black">Pay</p>
     </el-button>
   </el-dialog>
-
-  <div
-    ref="invoiceRef"
-    id="invoice"
-    class="p-6 bg-white text-black w-[600px] absolute -left-[9999px]"
-  >
-    <h2 class="text-xl font-bold mb-2">Invoice</h2>
-    <p>Order ID: {{ cartorder }}</p>
-    <p>Date: {{ new Date().toLocaleString() }}</p>
-
-    <ul class="my-4">
-      <li v-for="item in cart" :key="item.id" class="flex justify-between text-base">
-        <span>{{ item.name }} x{{ item.qty }}</span>
-        <span>${{ parseFloat(item.price) * item.qty }}</span>
-      </li>
-    </ul>
-
-    <div class="text-right font-bold mt-2">Total: ${{ totalPrice }}</div>
-  </div>
 </template>
 
 <script setup lang="ts">
-import type { Product } from '@/type.ts'
+import type { Product, CartItem } from '@/type.ts'
 import { defineProps, defineEmits, ref, computed } from 'vue'
 import jsPDF from 'jspdf'
-import html2canvas from 'html2canvas'
 import { createOrder } from '@/services/cart'
 import { createOrderProduct } from '@/services/order'
+
 const outerVisible = ref(false)
-const invoiceRef = ref<HTMLElement | null>(null)
 const cartorder = ref<number | any>()
-const props = defineProps<{ cart: Product[]; products: Product[] }>()
-const emit = defineEmits(['increase-qty', 'decrease-qty', 'remove-product'])
+
+// Discount modal state
+const discountModalVisible = ref(false)
+const selectedItem = ref<CartItem | null>(null)
+const discountInput = ref<number>(0)
+
+const props = defineProps<{ cart: CartItem[]; products: Product[] }>()
+const emit = defineEmits([
+  'increase-qty',
+  'decrease-qty',
+  'remove-product',
+  'apply-discount',
+  'clear-cart',
+])
 
 function getProduct(id: number) {
   return props.products.find((p) => p.id === id)
 }
-async function generateInvoicePDF() {
-  if (!invoiceRef.value) return
 
-  const canvas = await html2canvas(invoiceRef.value)
-  const imgData = canvas.toDataURL('image/png')
+// Discount functions
+function openDiscountModal(item: CartItem) {
+  selectedItem.value = item
+  discountInput.value = item.discount || 0
+  discountModalVisible.value = true
+}
 
-  const pdf = new jsPDF()
-  const imgProps = pdf.getImageProperties(imgData)
-  const pdfWidth = pdf.internal.pageSize.getWidth()
-  const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
+function closeDiscountModal() {
+  discountModalVisible.value = false
+  selectedItem.value = null
+  discountInput.value = 0
+}
 
-  pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
-  pdf.save('invoice.pdf')
+function applyDiscount() {
+  if (selectedItem.value && discountInput.value >= 0 && discountInput.value <= 100) {
+    emit('apply-discount', selectedItem.value, discountInput.value)
+    closeDiscountModal()
+  }
+}
+
+function getOriginalItemPrice(item: CartItem | null): string {
+  if (!item) return '0.00'
+  const product = getProduct(item.id)
+  return product ? (product.price * item.qty).toFixed(2) : '0.00'
+}
+
+function getDiscountedPrice(item: CartItem | null): number {
+  if (!item || !discountInput.value) return 0
+  const product = getProduct(item.id)
+  if (!product) return 0
+  const originalPrice = product.price * item.qty
+  return originalPrice * (1 - discountInput.value / 100)
+}
+
+function getDiscountAmount(item: CartItem | null): number {
+  if (!item || !discountInput.value) return 0
+  const product = getProduct(item.id)
+  if (!product) return 0
+  const originalPrice = product.price * item.qty
+  return originalPrice * (discountInput.value / 100)
+}
+
+function getItemTotal(item: CartItem): number {
+  const product = getProduct(item.id)
+  if (!product) return 0
+  const originalPrice = product.price * item.qty
+  if (item.discount && item.discount > 0) {
+    return originalPrice * (1 - item.discount / 100)
+  }
+  return originalPrice
+}
+
+function getItemDiscount(item: CartItem): number {
+  const product = getProduct(item.id)
+  if (!product || !item.discount) return 0
+  const originalPrice = product.price * item.qty
+  return originalPrice * (item.discount / 100)
+}
+function formatMoney(amount: number): string {
+  return `$${amount.toFixed(2)}`
+}
+
+async function generateInvoicePDF(orderId: number, cartItems: CartItem[]) {
+  if (!orderId || !cartItems.length) return
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' })
+
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const margin = 40
+  let y = margin
+
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(18)
+  doc.text('Invoice', margin, y)
+
+  doc.setFontSize(11)
+  doc.setFont('helvetica', 'normal')
+  y += 20
+  doc.text(`Order ID: ${orderId}`, margin, y)
+  y += 16
+  const createdAt = new Date()
+  doc.text(`Date: ${createdAt.toLocaleString()}`, margin, y)
+
+  // Header row
+  y += 30
+  doc.setFont('helvetica', 'bold')
+  doc.text('Item', margin, y)
+  doc.text('Qty', pageWidth - margin - 180, y)
+  doc.text('Discount', pageWidth - margin - 120, y)
+  doc.text('Price', pageWidth - margin - 30, y)
+
+  doc.setFont('helvetica', 'normal')
+  y += 8
+  doc.line(margin, y, pageWidth - margin, y)
+
+  let total = 0
+  cartItems.forEach((item) => {
+    const qty = Number(item.qty || 0)
+    const price = getItemTotal(item) // Use the same calculation as the cart
+    total += price
+    y += 22
+    doc.text(String(item.name || ''), margin, y)
+    doc.text(String(qty), pageWidth - margin - 180, y)
+    doc.text(String(item.discount || 0) + '%', pageWidth - margin - 120, y)
+    doc.text(formatMoney(price), pageWidth - margin - 30, y)
+  })
+
+  // Totals
+  y += 24
+  doc.setFont('helvetica', 'bold')
+  doc.text(`Total: ${formatMoney(total)}`, pageWidth - margin, y, { align: 'right' })
+
+  const filename = `invoice_${orderId}.pdf`
+  doc.save(filename)
 }
 
 async function createCart() {
@@ -142,15 +332,19 @@ async function confirmOrder(id: number, products: any[]) {
       products: products.map((p) => ({
         product_id: p.id,
         qty: p.qty,
-        price: parseFloat(p.price),
+        price: getItemTotal(p), // Use discounted price instead of original price
+        discount: p.discount || 0,
       })),
     }
     const response = await createOrderProduct(id, payload)
     console.log('Order submitted successfully:', response)
-    await generateInvoicePDF()
-    setTimeout(() => {
-      window.location.reload()
-    }, 1500) // wait for PDF to generate before reload
+    await generateInvoicePDF(id, products)
+
+    // Close the confirm order modal
+    outerVisible.value = false
+
+    // Clear all items from cart
+    emit('clear-cart')
   } catch (e: any) {
     console.error('Order submission failed:', e)
     throw new Error(e)
@@ -160,8 +354,7 @@ async function confirmOrder(id: number, products: any[]) {
 const totalPrice = computed(() => {
   console.log(props.cart, props.products)
   return props.cart.reduce((acc, item) => {
-    const product = getProduct(item.id)
-    return acc + (product ? product.price * item.qty : 0)
+    return acc + getItemTotal(item)
   }, 0)
 })
 </script>

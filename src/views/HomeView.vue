@@ -1,14 +1,17 @@
 <template>
   <div class="min-h-screen bg-background pt-20">
-    <div class="flex justify-center mb-6">
-      <el-input
-        v-model="search"
-        placeholder="Search for an item..."
-        size="large"
-        class="w-full max-w-2xl h-14 custom-radius"
-        :prefix-icon="Search"
-        clearable
-      />
+    <div class="flex justify-between items-center mb-6 px-6">
+      <div class="flex-1 flex justify-center">
+        <el-input
+          v-model="search"
+          placeholder="Search for an item..."
+          size="large"
+          class="w-full max-w-2xl h-14 custom-radius"
+          :prefix-icon="Search"
+          clearable
+        />
+      </div>
+      <el-button type="danger" plain @click="openLogoutModal">Logout</el-button>
     </div>
 
     <div class="h-[70vh] px-6 flex gap-4">
@@ -24,9 +27,12 @@
           @increase-qty="increaseQty"
           @decrease-qty="decreaseQty"
           @remove-product="removeProduct"
+          @apply-discount="applyDiscount"
+          @clear-cart="clearCart"
         />
       </div>
     </div>
+    <LogoutModal v-if="logoutVisible" @cancel="logoutVisible = false" @confirm="confirmLogout" />
   </div>
 </template>
 
@@ -35,12 +41,30 @@ import { ref, computed, onMounted } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import Productlist from '@/components/Productlist.vue'
 import Cart from '@/components/Cart.vue'
+import LogoutModal from '@/components/LogoutModal.vue'
 import type { CartItem, Product } from '@/type'
 import { ElLoading } from 'element-plus'
 import { getAllProduct } from '@/services/product'
+import VueCookies from 'vue-cookies'
+import router from '@/router'
+import { showSuccess } from '@/lib/toast'
 const search = ref('')
 const products = ref<Product[]>([])
 const cart = ref<CartItem[]>([])
+const logoutVisible = ref(false)
+
+function openLogoutModal() {
+  logoutVisible.value = true
+}
+
+function confirmLogout() {
+  VueCookies.remove('storepos')
+  logoutVisible.value = false
+  showSuccess('Logged out successfully. Redirecting...', { autoClose: 1200 })
+  setTimeout(() => {
+    router.replace('/')
+  }, 1200)
+}
 
 async function handleGetProduct() {
   try {
@@ -101,6 +125,26 @@ function removeProduct(item: CartItem) {
     product.qty += item.qty
   }
   cart.value = cart.value.filter((p) => p.id !== item.id)
+}
+
+function applyDiscount(item: CartItem, discount: number) {
+  const cartItem = cart.value.find((i) => i.id === item.id)
+  if (cartItem) {
+    cartItem.discount = discount
+  }
+}
+
+function clearCart() {
+  // Return all cart items back to product inventory
+  cart.value.forEach((cartItem) => {
+    const product = getProduct(cartItem.id)
+    if (product) {
+      product.qty += cartItem.qty
+    }
+  })
+
+  // Clear the cart
+  cart.value = []
 }
 onMounted(() => {
   handleGetProduct()

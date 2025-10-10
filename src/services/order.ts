@@ -3,9 +3,9 @@ import request from './httpconfig'
 import { ElNotification } from 'element-plus'
 export async function createOrderProduct(
   cartId: number,
-  data: { products: { product_id: number; qty: number; price: number }[] },
+  data: { products: { product_id: number; qty: number; price: number; discount?: number }[] },
 ) {
-  const token = VueCookies.get('storepos')
+  const token = (VueCookies as any).get('storepos')
 
   try {
     const response = await request.post(`/createorderproduct/${cartId}`, data, {
