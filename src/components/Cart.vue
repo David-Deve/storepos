@@ -38,13 +38,11 @@
               </div>
 
               <div class="flex items-center gap-2">
-                <el-button
-                  class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-sm font-gagalin"
-                  size="small"
-                  @click="openDiscountModal(item)"
-                >
-                  <span v-if="item.discount && item.discount > 0">{{ item.discount }}%</span>
-                  <span v-else>Discount</span>
+                <el-button class="buttondiscount" size="small" @click="openDiscountModal(item)">
+                  <span v-if="item.discount && item.discount > 0" class="font-gagalin text-white"
+                    >{{ item.discount }}%</span
+                  >
+                  <span v-else class="font-gagalin text-white">Discount</span>
                 </el-button>
                 <el-button
                   class="buttonremove"
@@ -85,56 +83,104 @@
   <!-- Discount Modal -->
   <el-dialog
     v-model="discountModalVisible"
-    title="Apply Discount"
-    width="400"
-    class="discount-dialog"
+    title=""
+    width="380"
+    class="discount-modal"
     :close-on-click-modal="false"
+    :show-close="false"
+    :before-close="closeDiscountModal"
   >
-    <div class="text-center">
-      <div class="mb-4">
-        <h3 class="text-lg font-gagalin mb-2">{{ selectedItem?.name }}</h3>
-        <p class="text-gray-600">Original Price: ${{ getOriginalItemPrice(selectedItem) }}</p>
+    <div class="discount-content">
+      <!-- Header -->
+      <div class="text-center mb-4">
+        <div class="discount-icon">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+            ></path>
+          </svg>
+        </div>
+        <h2 class="modal-title">Apply Discount</h2>
+        <p class="modal-subtitle">Set discount for this item</p>
       </div>
 
-      <div class="mb-6">
-        <label class="block text-sm font-medium text-gray-700 mb-2 font-gagalin">
-          Discount Percentage (%)
-        </label>
-        <el-input
-          v-model="discountInput"
-          type="number"
-          placeholder="Enter discount %"
-          :min="0"
-          :max="100"
-          class="w-full"
+      <!-- Product Info -->
+      <div class="product-card">
+        <div class="product-name">{{ selectedItem?.name }}</div>
+        <div class="product-price">${{ getOriginalItemPrice(selectedItem) }}</div>
+      </div>
+
+      <!-- Discount Input -->
+      <div class="input-section">
+        <label class="input-label">Discount Percentage</label>
+        <div class="input-wrapper">
+          <el-input
+            v-model="discountInput"
+            type="number"
+            placeholder="Enter discount percentage"
+            :min="0"
+            :max="100"
+            class="discount-input"
+            size="large"
+            @input="onDiscountInput"
+            @keyup.enter="applyDiscount"
+            ref="discountInputRef"
+          />
+        </div>
+        <div class="input-hint">Enter 0-100</div>
+      </div>
+
+      <!-- Quick Discount Buttons -->
+      <div class="quick-discounts">
+        <button
+          v-for="discount in [10, 20, 30, 50]"
+          :key="discount"
+          @click="setQuickDiscount(discount)"
+          class="quick-btn"
+          :class="{ active: discountInput === discount }"
         >
-          <template #append>%</template>
-        </el-input>
+          {{ discount }}%
+        </button>
       </div>
 
-      <div v-if="discountInput && discountInput > 0" class="mb-4 p-3 bg-green-50 rounded-lg">
-        <p class="text-sm text-gray-600">
-          New Price:
-          <span class="font-semibold text-green-600"
-            >${{ getDiscountedPrice(selectedItem).toFixed(2) }}</span
-          >
-        </p>
-        <p class="text-sm text-gray-600">
-          You Save:
-          <span class="font-semibold text-green-600"
-            >${{ getDiscountAmount(selectedItem).toFixed(2) }}</span
-          >
-        </p>
+      <!-- Preview -->
+      <div v-if="discountInput !== null && discountInput > 0" class="preview-card">
+        <div class="preview-header">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+            ></path>
+          </svg>
+          <span>Discount Preview</span>
+        </div>
+        <div class="preview-content">
+          <div class="price-row">
+            <span>New Price:</span>
+            <span class="new-price">${{ getDiscountedPrice(selectedItem).toFixed(2) }}</span>
+          </div>
+          <div class="price-row">
+            <span>You Save:</span>
+            <span class="savings">${{ getDiscountAmount(selectedItem).toFixed(2) }}</span>
+          </div>
+        </div>
       </div>
     </div>
 
     <template #footer>
-      <div class="flex justify-end gap-3">
-        <el-button @click="closeDiscountModal">Cancel</el-button>
+      <div class="modal-footer">
+        <el-button @click="closeDiscountModal" class="cancel-btn" size="large"> Cancel </el-button>
         <el-button
           type="primary"
           @click="applyDiscount"
-          :disabled="!discountInput || discountInput < 0 || discountInput > 100"
+          :disabled="discountInput === null || discountInput < 0 || discountInput > 100"
+          class="apply-btn"
+          size="large"
         >
           Apply Discount
         </el-button>
@@ -186,7 +232,8 @@ const cartorder = ref<number | any>()
 // Discount modal state
 const discountModalVisible = ref(false)
 const selectedItem = ref<CartItem | null>(null)
-const discountInput = ref<number>(0)
+const discountInput = ref<number | null>(null)
+const discountInputRef = ref()
 
 const props = defineProps<{ cart: CartItem[]; products: Product[] }>()
 const emit = defineEmits([
@@ -204,18 +251,43 @@ function getProduct(id: number) {
 // Discount functions
 function openDiscountModal(item: CartItem) {
   selectedItem.value = item
-  discountInput.value = item.discount || 0
+  discountInput.value = item.discount || null
   discountModalVisible.value = true
+  // Focus input after modal opens
+  setTimeout(() => {
+    discountInputRef.value?.focus()
+  }, 100)
 }
 
 function closeDiscountModal() {
   discountModalVisible.value = false
   selectedItem.value = null
-  discountInput.value = 0
+  discountInput.value = null
+}
+
+function setQuickDiscount(discount: number) {
+  discountInput.value = discount
+  // Add a subtle animation feedback
+  const input = discountInputRef.value
+  if (input) {
+    input.focus()
+  }
+}
+
+function onDiscountInput() {
+  // Real-time validation feedback
+  if (discountInput.value !== null && (discountInput.value < 0 || discountInput.value > 100)) {
+    // Could add visual feedback here
+  }
 }
 
 function applyDiscount() {
-  if (selectedItem.value && discountInput.value >= 0 && discountInput.value <= 100) {
+  if (
+    selectedItem.value &&
+    discountInput.value !== null &&
+    discountInput.value >= 0 &&
+    discountInput.value <= 100
+  ) {
     emit('apply-discount', selectedItem.value, discountInput.value)
     closeDiscountModal()
   }
@@ -228,7 +300,7 @@ function getOriginalItemPrice(item: CartItem | null): string {
 }
 
 function getDiscountedPrice(item: CartItem | null): number {
-  if (!item || !discountInput.value) return 0
+  if (!item || discountInput.value === null || discountInput.value <= 0) return 0
   const product = getProduct(item.id)
   if (!product) return 0
   const originalPrice = product.price * item.qty
@@ -236,7 +308,7 @@ function getDiscountedPrice(item: CartItem | null): number {
 }
 
 function getDiscountAmount(item: CartItem | null): number {
-  if (!item || !discountInput.value) return 0
+  if (!item || discountInput.value === null || discountInput.value <= 0) return 0
   const product = getProduct(item.id)
   if (!product) return 0
   const originalPrice = product.price * item.qty
