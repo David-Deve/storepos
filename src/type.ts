@@ -3,6 +3,7 @@ export interface Product {
   price: string | any
   name: string
   qty: number
+  discount?: number
 }
 
 export interface CartItem {
@@ -10,4 +11,5 @@ export interface CartItem {
   name: string
   qty: number
   price: string
+  discount?: number
 }
