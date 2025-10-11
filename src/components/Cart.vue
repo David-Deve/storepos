@@ -10,7 +10,7 @@
         @click="$emit('clear-cart')"
         class="font-gagalin"
       >
-        Clear All
+        Clear All Test
       </el-button>
     </div>
     <div v-if="cart.length">
