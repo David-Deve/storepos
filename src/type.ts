@@ -4,6 +4,7 @@ export interface Product {
   name: string
   qty: number
   discount?: number
+  discount_expired_at?: string
 }
 
 export interface CartItem {

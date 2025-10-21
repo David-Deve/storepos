@@ -38,12 +38,6 @@
               </div>
 
               <div class="flex items-center gap-2">
-                <el-button class="buttondiscount" size="small" @click="openDiscountModal(item)">
-                  <span v-if="item.discount && item.discount > 0" class="font-gagalin text-white"
-                    >{{ item.discount }}%</span
-                  >
-                  <span v-else class="font-gagalin text-white">Discount</span>
-                </el-button>
                 <el-button
                   class="buttonremove"
                   size="small"
@@ -79,114 +73,6 @@
       <p class="font-gagalin font-black">Submit order</p>
     </el-button>
   </div>
-
-  <!-- Discount Modal -->
-  <el-dialog
-    v-model="discountModalVisible"
-    title=""
-    width="380"
-    class="discount-modal"
-    :close-on-click-modal="false"
-    :show-close="false"
-    :before-close="closeDiscountModal"
-  >
-    <div class="discount-content">
-      <!-- Header -->
-      <div class="text-center mb-4">
-        <div class="discount-icon">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-            ></path>
-          </svg>
-        </div>
-        <h2 class="modal-title">Apply Discount</h2>
-        <p class="modal-subtitle">Set discount for this item</p>
-      </div>
-
-      <!-- Product Info -->
-      <div class="product-card">
-        <div class="product-name">{{ selectedItem?.name }}</div>
-        <div class="product-price">${{ getOriginalItemPrice(selectedItem) }}</div>
-      </div>
-
-      <!-- Discount Input -->
-      <div class="input-section">
-        <label class="input-label">Discount Percentage</label>
-        <div class="input-wrapper">
-          <el-input
-            v-model="discountInput"
-            type="number"
-            placeholder="Enter discount percentage"
-            :min="0"
-            :max="100"
-            class="discount-input"
-            size="large"
-            @input="onDiscountInput"
-            @keyup.enter="applyDiscount"
-            ref="discountInputRef"
-          />
-        </div>
-        <div class="input-hint">Enter 0-100</div>
-      </div>
-
-      <!-- Quick Discount Buttons -->
-      <div class="quick-discounts">
-        <button
-          v-for="discount in [10, 20, 30, 50]"
-          :key="discount"
-          @click="setQuickDiscount(discount)"
-          class="quick-btn"
-          :class="{ active: discountInput === discount }"
-        >
-          {{ discount }}%
-        </button>
-      </div>
-
-      <!-- Preview -->
-      <div v-if="discountInput !== null && discountInput > 0" class="preview-card">
-        <div class="preview-header">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-            ></path>
-          </svg>
-          <span>Discount Preview</span>
-        </div>
-        <div class="preview-content">
-          <div class="price-row">
-            <span>New Price:</span>
-            <span class="new-price">${{ getDiscountedPrice(selectedItem).toFixed(2) }}</span>
-          </div>
-          <div class="price-row">
-            <span>You Save:</span>
-            <span class="savings">${{ getDiscountAmount(selectedItem).toFixed(2) }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <template #footer>
-      <div class="modal-footer">
-        <el-button @click="closeDiscountModal" class="cancel-btn" size="large"> Cancel </el-button>
-        <el-button
-          type="primary"
-          @click="applyDiscount"
-          :disabled="discountInput === null || discountInput < 0 || discountInput > 100"
-          class="apply-btn"
-          size="large"
-        >
-          Apply Discount
-        </el-button>
-      </div>
-    </template>
-  </el-dialog>
 
   <el-dialog
     v-model="outerVisible"
@@ -229,107 +115,33 @@ import { createOrderProduct } from '@/services/order'
 const outerVisible = ref(false)
 const cartorder = ref<number | any>()
 
-// Discount modal state
-const discountModalVisible = ref(false)
-const selectedItem = ref<CartItem | null>(null)
-const discountInput = ref<number | null>(null)
-const discountInputRef = ref()
-
 const props = defineProps<{ cart: CartItem[]; products: Product[] }>()
-const emit = defineEmits([
-  'increase-qty',
-  'decrease-qty',
-  'remove-product',
-  'apply-discount',
-  'clear-cart',
-])
+const emit = defineEmits(['increase-qty', 'decrease-qty', 'remove-product', 'clear-cart'])
 
 function getProduct(id: number) {
   return props.products.find((p) => p.id === id)
 }
 
-// Discount functions
-function openDiscountModal(item: CartItem) {
-  selectedItem.value = item
-  discountInput.value = item.discount || null
-  discountModalVisible.value = true
-  // Focus input after modal opens
-  setTimeout(() => {
-    discountInputRef.value?.focus()
-  }, 100)
-}
-
-function closeDiscountModal() {
-  discountModalVisible.value = false
-  selectedItem.value = null
-  discountInput.value = null
-}
-
-function setQuickDiscount(discount: number) {
-  discountInput.value = discount
-  // Add a subtle animation feedback
-  const input = discountInputRef.value
-  if (input) {
-    input.focus()
-  }
-}
-
-function onDiscountInput() {
-  // Real-time validation feedback
-  if (discountInput.value !== null && (discountInput.value < 0 || discountInput.value > 100)) {
-    // Could add visual feedback here
-  }
-}
-
-function applyDiscount() {
-  if (
-    selectedItem.value &&
-    discountInput.value !== null &&
-    discountInput.value >= 0 &&
-    discountInput.value <= 100
-  ) {
-    emit('apply-discount', selectedItem.value, discountInput.value)
-    closeDiscountModal()
-  }
-}
-
-function getOriginalItemPrice(item: CartItem | null): string {
-  if (!item) return '0.00'
-  const product = getProduct(item.id)
-  return product ? (product.price * item.qty).toFixed(2) : '0.00'
-}
-
-function getDiscountedPrice(item: CartItem | null): number {
-  if (!item || discountInput.value === null || discountInput.value <= 0) return 0
-  const product = getProduct(item.id)
-  if (!product) return 0
-  const originalPrice = product.price * item.qty
-  return originalPrice * (1 - discountInput.value / 100)
-}
-
-function getDiscountAmount(item: CartItem | null): number {
-  if (!item || discountInput.value === null || discountInput.value <= 0) return 0
-  const product = getProduct(item.id)
-  if (!product) return 0
-  const originalPrice = product.price * item.qty
-  return originalPrice * (discountInput.value / 100)
+function isDiscountValid(product: Product): boolean {
+  if (!product.discount || !product.discount_expired_at) return false
+  return new Date(product.discount_expired_at) > new Date()
 }
 
 function getItemTotal(item: CartItem): number {
   const product = getProduct(item.id)
   if (!product) return 0
-  const originalPrice = product.price * item.qty
-  if (item.discount && item.discount > 0) {
-    return originalPrice * (1 - item.discount / 100)
+  const originalPrice = parseFloat(product.price) * item.qty
+  if (product.discount && isDiscountValid(product)) {
+    return originalPrice * (1 - product.discount / 100)
   }
   return originalPrice
 }
 
 function getItemDiscount(item: CartItem): number {
   const product = getProduct(item.id)
-  if (!product || !item.discount) return 0
-  const originalPrice = product.price * item.qty
-  return originalPrice * (item.discount / 100)
+  if (!product || !product.discount || !isDiscountValid(product)) return 0
+  const originalPrice = parseFloat(product.price) * item.qty
+  return originalPrice * (product.discount / 100)
 }
 function formatMoney(amount: number): string {
   return `$${amount.toFixed(2)}`
@@ -401,12 +213,15 @@ async function createCart() {
 async function confirmOrder(id: number, products: any[]) {
   try {
     const payload = {
-      products: products.map((p) => ({
-        product_id: p.id,
-        qty: p.qty,
-        price: getItemTotal(p), // Use discounted price instead of original price
-        discount: p.discount || 0,
-      })),
+      products: products.map((p) => {
+        const product = getProduct(p.id)
+        return {
+          product_id: p.id,
+          qty: p.qty,
+          price: getItemTotal(p),
+          discount: product && isDiscountValid(product) ? product.discount : 0,
+        }
+      }),
     }
     const response = await createOrderProduct(id, payload)
     console.log('Order submitted successfully:', response)
