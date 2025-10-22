@@ -38,12 +38,6 @@
               </div>
 
               <div class="flex items-center gap-2">
-                <el-button class="buttondiscount" size="small" @click="openDiscountModal(item)">
-                  <span v-if="item.discount && item.discount > 0" class="font-gagalin text-white"
-                    >{{ item.discount }}%</span
-                  >
-                  <span v-else class="font-gagalin text-white">Discount</span>
-                </el-button>
                 <el-button
                   class="buttonremove"
                   size="small"
@@ -80,142 +74,132 @@
     </el-button>
   </div>
 
-  <!-- Discount Modal -->
-  <el-dialog
-    v-model="discountModalVisible"
-    title=""
-    width="380"
-    class="discount-modal"
-    :close-on-click-modal="false"
-    :show-close="false"
-    :before-close="closeDiscountModal"
-  >
-    <div class="discount-content">
-      <!-- Header -->
-      <div class="text-center mb-4">
-        <div class="discount-icon">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-            ></path>
-          </svg>
+  <el-dialog v-model="outerVisible" width="900" :show-close="false" class="dialog">
+    <template #header>
+      <div class="flex items-center justify-between w-full pr-4">
+        <div>
+          <h3 class="text-2xl font-bold text-gray-800 font-gagalin">Order Confirmation</h3>
+          <p class="text-sm text-gray-500 mt-1">
+            Order #{{ cartorder }} • {{ new Date().toLocaleString() }}
+          </p>
         </div>
-        <h2 class="modal-title">Apply Discount</h2>
-        <p class="modal-subtitle">Set discount for this item</p>
+        <el-button circle @click="outerVisible = false" class="hover:bg-gray-100"> ✕ </el-button>
       </div>
+    </template>
 
-      <!-- Product Info -->
-      <div class="product-card">
-        <div class="product-name">{{ selectedItem?.name }}</div>
-        <div class="product-price">${{ getOriginalItemPrice(selectedItem) }}</div>
-      </div>
-
-      <!-- Discount Input -->
-      <div class="input-section">
-        <label class="input-label">Discount Percentage</label>
-        <div class="input-wrapper">
-          <el-input
-            v-model="discountInput"
-            type="number"
-            placeholder="Enter discount percentage"
-            :min="0"
-            :max="100"
-            class="discount-input"
-            size="large"
-            @input="onDiscountInput"
-            @keyup.enter="applyDiscount"
-            ref="discountInputRef"
-          />
+    <!-- Order Items -->
+    <div class="max-h-96 overflow-y-auto mb-6">
+      <div
+        v-for="item in cart"
+        :key="item.id"
+        class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg mb-3 hover:shadow-sm transition-shadow"
+      >
+        <div class="flex-1">
+          <p class="font-semibold text-gray-800 font-gagalin">{{ item.name }}</p>
+          <div class="flex items-center gap-4 mt-1 text-sm text-gray-600">
+            <span>Qty: {{ item.qty }}</span>
+            <span>•</span>
+            <span>${{ getProduct(item.id)?.price }} each</span>
+            <span
+              v-if="item.discount && item.discount > 0"
+              class="inline-flex items-center px-2 py-0.5 rounded bg-green-100 text-green-700 font-medium"
+            >
+              {{ item.discount }}% OFF
+            </span>
+          </div>
         </div>
-        <div class="input-hint">Enter 0-100</div>
+        <div class="text-right">
+          <p class="text-lg font-bold text-gray-900 font-gagalin">
+            ${{ getItemTotal(item).toFixed(2) }}
+          </p>
+          <p v-if="item.discount && item.discount > 0" class="text-xs text-green-600">
+            Saved ${{ getItemDiscount(item).toFixed(2) }}
+          </p>
+        </div>
       </div>
+    </div>
 
-      <!-- Quick Discount Buttons -->
-      <div class="quick-discounts">
-        <button
-          v-for="discount in [10, 20, 30, 50]"
-          :key="discount"
-          @click="setQuickDiscount(discount)"
-          class="quick-btn"
-          :class="{ active: discountInput === discount }"
+    <!-- Total Section -->
+    <div
+      class="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl mb-6 border border-blue-100"
+    >
+      <div class="flex justify-between items-center">
+        <span class="text-lg font-semibold text-gray-700 font-gagalin">Total Amount</span>
+        <span class="text-3xl font-bold text-blue-600 font-gagalin"
+          >${{ totalPrice.toFixed(2) }}</span
         >
-          {{ discount }}%
-        </button>
       </div>
+    </div>
 
-      <!-- Preview -->
-      <div v-if="discountInput !== null && discountInput > 0" class="preview-card">
-        <div class="preview-header">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-            ></path>
-          </svg>
-          <span>Discount Preview</span>
+    <!-- Payment Section -->
+    <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
+      <h4 class="text-lg font-semibold text-gray-800 mb-4 font-gagalin">Payment Details</h4>
+
+      <div class="space-y-4">
+        <div
+          class="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200"
+        >
+          <label class="text-base font-medium text-gray-700 font-gagalin">Cash Received</label>
+          <div class="flex items-center gap-2">
+            <span class="text-2xl font-bold text-gray-700">$</span>
+            <el-input-number
+              v-model="cashReceived"
+              :min="0"
+              :precision="2"
+              :step="10"
+              size="large"
+              class="w-48"
+              :controls-position="'right'"
+            />
+          </div>
         </div>
-        <div class="preview-content">
-          <div class="price-row">
-            <span>New Price:</span>
-            <span class="new-price">${{ getDiscountedPrice(selectedItem).toFixed(2) }}</span>
-          </div>
-          <div class="price-row">
-            <span>You Save:</span>
-            <span class="savings">${{ getDiscountAmount(selectedItem).toFixed(2) }}</span>
-          </div>
+
+        <div
+          class="flex items-center justify-between p-4 bg-white rounded-lg border-2"
+          :class="returnMoney >= 0 ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'"
+        >
+          <span class="text-base font-medium text-gray-700 font-gagalin">Change Due</span>
+          <span
+            :class="[
+              'text-2xl font-bold font-gagalin',
+              returnMoney >= 0 ? 'text-green-600' : 'text-red-600',
+            ]"
+          >
+            ${{ Math.abs(returnMoney).toFixed(2) }}
+          </span>
+        </div>
+
+        <div
+          v-if="insufficientCash"
+          class="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg"
+        >
+          <span class="text-red-600">⚠️</span>
+          <span class="text-red-600 text-sm font-medium">
+            Insufficient payment. Need ${{ Math.abs(returnMoney).toFixed(2) }} more.
+          </span>
         </div>
       </div>
     </div>
 
     <template #footer>
-      <div class="modal-footer">
-        <el-button @click="closeDiscountModal" class="cancel-btn" size="large"> Cancel </el-button>
+      <div class="flex justify-end gap-3">
+        <el-button size="large" @click="outerVisible = false" class="px-6 font-gagalin">
+          Cancel
+        </el-button>
         <el-button
-          type="primary"
-          @click="applyDiscount"
-          :disabled="discountInput === null || discountInput < 0 || discountInput > 100"
-          class="apply-btn"
+          type="success"
           size="large"
+          :disabled="insufficientCash"
+          @click="confirmOrder(cartorder, cart)"
+          class="px-8 font-gagalin"
         >
-          Apply Discount
+          <div class="flex items-center gap-2">
+            <span class="text-lg">✓</span>
+            <span class="font-semibold">Confirm & Pay</span>
+          </div>
         </el-button>
       </div>
     </template>
-  </el-dialog>
-
-  <el-dialog
-    v-model="outerVisible"
-    :title="`Confirm Order ID ${cartorder}`"
-    width="800"
-    class="dialog"
-  >
-    <span>{{ cartorder }}</span>
-    <ul v-for="item in cart" :key="item.id">
-      <div class="flex flex-col items-center text-xl">
-        <div class="flex justify-center items-center gap-2">
-          <p>{{ item.name }}:</p>
-          <p>{{ item.qty }}</p>
-          <p>${{ getItemTotal(item).toFixed(2) }}</p>
-          <span v-if="item.discount && item.discount > 0" class="text-green-600 text-sm">
-            ({{ item.discount }}% off)
-          </span>
-        </div>
-        <p v-if="item.discount && item.discount > 0" class="text-sm text-green-600">
-          Discount: ${{ getItemDiscount(item).toFixed(2) }}
-        </p>
-      </div>
-    </ul>
-    <p class="text-2xl">
-      Total: <span class="text-green-700">${{ totalPrice.toFixed(2) }}</span>
-    </p>
-    <el-button type="success" class="mt-4 w-24" @click="confirmOrder(cartorder, cart)">
-      <p class="font-black">Pay</p>
-    </el-button>
   </el-dialog>
 </template>
 
@@ -228,108 +212,41 @@ import { createOrderProduct } from '@/services/order'
 
 const outerVisible = ref(false)
 const cartorder = ref<number | any>()
-
-// Discount modal state
-const discountModalVisible = ref(false)
-const selectedItem = ref<CartItem | null>(null)
-const discountInput = ref<number | null>(null)
-const discountInputRef = ref()
+const cashReceived = ref<number>(0)
+const returnMoney = computed(() => {
+  return cashReceived.value - totalPrice.value
+})
+const insufficientCash = computed(() => {
+  return cashReceived.value < totalPrice.value
+})
 
 const props = defineProps<{ cart: CartItem[]; products: Product[] }>()
-const emit = defineEmits([
-  'increase-qty',
-  'decrease-qty',
-  'remove-product',
-  'apply-discount',
-  'clear-cart',
-])
+const emit = defineEmits(['increase-qty', 'decrease-qty', 'remove-product', 'clear-cart'])
 
 function getProduct(id: number) {
   return props.products.find((p) => p.id === id)
 }
 
-// Discount functions
-function openDiscountModal(item: CartItem) {
-  selectedItem.value = item
-  discountInput.value = item.discount || null
-  discountModalVisible.value = true
-  // Focus input after modal opens
-  setTimeout(() => {
-    discountInputRef.value?.focus()
-  }, 100)
-}
-
-function closeDiscountModal() {
-  discountModalVisible.value = false
-  selectedItem.value = null
-  discountInput.value = null
-}
-
-function setQuickDiscount(discount: number) {
-  discountInput.value = discount
-  // Add a subtle animation feedback
-  const input = discountInputRef.value
-  if (input) {
-    input.focus()
-  }
-}
-
-function onDiscountInput() {
-  // Real-time validation feedback
-  if (discountInput.value !== null && (discountInput.value < 0 || discountInput.value > 100)) {
-    // Could add visual feedback here
-  }
-}
-
-function applyDiscount() {
-  if (
-    selectedItem.value &&
-    discountInput.value !== null &&
-    discountInput.value >= 0 &&
-    discountInput.value <= 100
-  ) {
-    emit('apply-discount', selectedItem.value, discountInput.value)
-    closeDiscountModal()
-  }
-}
-
-function getOriginalItemPrice(item: CartItem | null): string {
-  if (!item) return '0.00'
-  const product = getProduct(item.id)
-  return product ? (product.price * item.qty).toFixed(2) : '0.00'
-}
-
-function getDiscountedPrice(item: CartItem | null): number {
-  if (!item || discountInput.value === null || discountInput.value <= 0) return 0
-  const product = getProduct(item.id)
-  if (!product) return 0
-  const originalPrice = product.price * item.qty
-  return originalPrice * (1 - discountInput.value / 100)
-}
-
-function getDiscountAmount(item: CartItem | null): number {
-  if (!item || discountInput.value === null || discountInput.value <= 0) return 0
-  const product = getProduct(item.id)
-  if (!product) return 0
-  const originalPrice = product.price * item.qty
-  return originalPrice * (discountInput.value / 100)
+function isDiscountValid(product: Product): boolean {
+  if (!product.discount || !product.discount_expired_at) return false
+  return new Date(product.discount_expired_at) > new Date()
 }
 
 function getItemTotal(item: CartItem): number {
   const product = getProduct(item.id)
   if (!product) return 0
-  const originalPrice = product.price * item.qty
-  if (item.discount && item.discount > 0) {
-    return originalPrice * (1 - item.discount / 100)
+  const originalPrice = parseFloat(product.price) * item.qty
+  if (product.discount && isDiscountValid(product)) {
+    return originalPrice * (1 - product.discount / 100)
   }
   return originalPrice
 }
 
 function getItemDiscount(item: CartItem): number {
   const product = getProduct(item.id)
-  if (!product || !item.discount) return 0
-  const originalPrice = product.price * item.qty
-  return originalPrice * (item.discount / 100)
+  if (!product || !product.discount || !isDiscountValid(product)) return 0
+  const originalPrice = parseFloat(product.price) * item.qty
+  return originalPrice * (product.discount / 100)
 }
 function formatMoney(amount: number): string {
   return `$${amount.toFixed(2)}`
@@ -379,10 +296,20 @@ async function generateInvoicePDF(orderId: number, cartItems: CartItem[]) {
     doc.text(formatMoney(price), pageWidth - margin - 30, y)
   })
 
-  // Totals
-  y += 24
+  // Payment Details
+  y += 40
+  doc.line(margin, y - 16, pageWidth - margin, y - 16)
+
   doc.setFont('helvetica', 'bold')
-  doc.text(`Total: ${formatMoney(total)}`, pageWidth - margin, y, { align: 'right' })
+  doc.text(`Total Amount: ${formatMoney(total)}`, pageWidth - margin - 110, y)
+
+  y += 20
+  doc.setFont('helvetica', 'normal')
+  doc.text(`Cash Received: ${formatMoney(cashReceived.value)}`, pageWidth - margin - 114, y)
+
+  y += 20
+  const returnMoneyAmount = cashReceived.value - total
+  doc.text(`Return Money: ${formatMoney(returnMoneyAmount)}`, pageWidth - margin - 110, y)
 
   const filename = `invoice_${orderId}.pdf`
   doc.save(filename)
@@ -400,20 +327,34 @@ async function createCart() {
 }
 async function confirmOrder(id: number, products: any[]) {
   try {
-    const payload = {
-      products: products.map((p) => ({
-        product_id: p.id,
-        qty: p.qty,
-        price: getItemTotal(p), // Use discounted price instead of original price
-        discount: p.discount || 0,
-      })),
+    if (insufficientCash.value) {
+      throw new Error('Insufficient cash received')
     }
+
+    const payload = {
+      products: products.map((p) => {
+        const product = getProduct(p.id)
+        return {
+          product_id: p.id,
+          qty: p.qty,
+          price: getItemTotal(p),
+          discount: product && isDiscountValid(product) ? product.discount : 0,
+        }
+      }),
+      cash_received: cashReceived.value,
+    }
+
     const response = await createOrderProduct(id, payload)
     console.log('Order submitted successfully:', response)
+
+    // Update PDF generation to include payment details
     await generateInvoicePDF(id, products)
 
     // Close the confirm order modal
     outerVisible.value = false
+
+    // Reset cash received
+    cashReceived.value = 0
 
     // Clear all items from cart
     emit('clear-cart')

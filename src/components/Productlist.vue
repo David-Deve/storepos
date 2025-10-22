@@ -15,7 +15,24 @@
       </div>
       <div class="grid grid-cols-2 gap-3 mb-5">
         <p class="font-gagalin text-2xl text-gray-600">price</p>
-        <p class="font-gagalin text-2xl text-secondary">{{ product.price }}</p>
+        <div>
+          <p
+            v-if="product.discount && isDiscountValid(product)"
+            class="font-gagalin text-lg line-through text-gray-400"
+          >
+            ${{ product.price }}
+          </p>
+          <p class="font-gagalin text-2xl text-secondary">
+            ${{ getDiscountedPrice(product) }}
+            <span
+              v-if="product.discount && isDiscountValid(product)"
+              class="text-sm text-green-600"
+            >
+              ({{ product.discount }}% off)
+            </span>
+          </p>
+         
+        </div>
       </div>
       <div class="grid grid-cols-2 gap-3 mb-5">
         <p class="font-gagalin text-2xl text-gray-600">Stock:</p>
@@ -36,4 +53,29 @@ import type { Product } from '@/type'
 
 defineProps<{ products: Product[] }>()
 const emit = defineEmits(['add-to-cart'])
+
+function isDiscountValid(product: Product): boolean {
+  if (!product.discount || !product.discount_expired_at) return false
+  return new Date(product.discount_expired_at) > new Date()
+}
+
+function getDiscountedPrice(product: Product): string {
+  if (!product.discount || !isDiscountValid(product)) {
+    return product.price
+  }
+  const price = parseFloat(product.price)
+  const discountedPrice = price * (1 - product.discount / 100)
+  return discountedPrice.toFixed(2)
+}
+
+function formatExpiryDate(date?: string): string {
+  if (!date) return ''
+  return new Date(date).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
 </script>
