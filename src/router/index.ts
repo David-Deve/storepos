@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import LoginView from '@/views/LoginView.vue'
+import MenuView from '@/views/MenuView.vue'
 import VueCookies from 'vue-cookies'
 
 const router = createRouter({
@@ -16,6 +17,12 @@ const router = createRouter({
       path: '/home',
       name: 'home',
       component: HomeView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/menu',
+      name: 'menu',
+      component: MenuView,
       meta: { requiresAuth: true },
     },
   ],
