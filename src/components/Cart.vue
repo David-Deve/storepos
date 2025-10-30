@@ -257,62 +257,189 @@ async function generateInvoicePDF(orderId: number, cartItems: CartItem[]) {
   const doc = new jsPDF({ unit: 'pt', format: 'a4' })
 
   const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
   const margin = 40
-  let y = margin
+  let y = 50
 
+  // INVOICE header
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(18)
-  doc.text('Invoice', margin, y)
+  doc.setFontSize(32)
+  doc.setTextColor(30, 41, 84) // Dark blue color
+  doc.text('INVOICE', margin, y)
 
-  doc.setFontSize(11)
+  // Company information
+  doc.setFontSize(10)
   doc.setFont('helvetica', 'normal')
-  y += 20
-  doc.text(`Order ID: ${orderId}`, margin, y)
-  y += 16
-  const createdAt = new Date()
-  doc.text(`Date: ${createdAt.toLocaleString()}`, margin, y)
+  doc.setTextColor(0, 0, 0)
+  y += 25
+  doc.text('MART 2500', margin, y)
+  y += 14
+  doc.setFontSize(9)
+  doc.text('Nearest to Norton University', margin, y)
+  y += 12
+  doc.text('Phnom Penh, Cambodia', margin, y)
 
-  // Header row
-  y += 30
+  // Add logo (top right) - after text to avoid overlap
+  try {
+    const logoImg = new Image()
+    logoImg.src = '/images/logo/logo.png'
+    await new Promise((resolve, reject) => {
+      logoImg.onload = resolve
+      logoImg.onerror = resolve // Continue even if logo fails
+      setTimeout(resolve, 1000) // Timeout after 1 second
+    })
+    if (logoImg.complete && logoImg.naturalWidth > 0) {
+      const logoSize = 70
+      doc.addImage(logoImg, 'PNG', pageWidth - margin - logoSize, 35, logoSize, logoSize)
+    }
+  } catch (e) {
+    console.log('Logo not loaded, continuing without it')
+  }
+
+  // Invoice details (right side)
+  let rightY = 120
+  doc.setFontSize(10)
   doc.setFont('helvetica', 'bold')
-  doc.text('Item', margin, y)
-  doc.text('Qty', pageWidth - margin - 180, y)
-  doc.text('Discount', pageWidth - margin - 120, y)
-  doc.text('Price', pageWidth - margin - 30, y)
-
+  doc.text('INVOICE #', pageWidth - 160, rightY)
   doc.setFont('helvetica', 'normal')
-  y += 8
-  doc.line(margin, y, pageWidth - margin, y)
-
-  let total = 0
-  cartItems.forEach((item) => {
-    const qty = Number(item.qty || 0)
-    const price = getItemTotal(item) // Use the same calculation as the cart
-    total += price
-    y += 22
-    doc.text(String(item.name || ''), margin, y)
-    doc.text(String(qty), pageWidth - margin - 180, y)
-    doc.text(String(item.discount || 0) + '%', pageWidth - margin - 120, y)
-    doc.text(formatMoney(price), pageWidth - margin - 30, y)
+  doc.text(`US-${String(orderId).padStart(3, '0')}`, pageWidth - margin, rightY, {
+    align: 'right',
   })
 
-  // Payment Details
-  y += 40
-  doc.line(margin, y - 16, pageWidth - margin, y - 16)
+  rightY += 18
+  doc.setFont('helvetica', 'bold')
+  doc.text('INVOICE DATE', pageWidth - 160, rightY)
+  doc.setFont('helvetica', 'normal')
+  const invoiceDate = new Date()
+  doc.text(formatDateForInvoice(invoiceDate), pageWidth - margin, rightY, { align: 'right' })
+
+  rightY += 18
+  doc.setFont('helvetica', 'bold')
+  doc.text('P.O.#', pageWidth - 160, rightY)
+  doc.setFont('helvetica', 'normal')
+  doc.text(`${orderId}/2025`, pageWidth - margin, rightY, { align: 'right' })
+
+  rightY += 18
+  doc.setFont('helvetica', 'bold')
+  doc.text('DUE DATE', pageWidth - 160, rightY)
+  doc.setFont('helvetica', 'normal')
+  const dueDate = new Date(invoiceDate)
+  dueDate.setDate(dueDate.getDate() + 15) // 15 days from invoice date
+  doc.text(formatDateForInvoice(dueDate), pageWidth - margin, rightY, { align: 'right' })
+
+  // Table header
+  y = 220
+  doc.setFillColor(240, 240, 240)
+  doc.rect(margin, y - 12, pageWidth - 2 * margin, 20, 'F')
 
   doc.setFont('helvetica', 'bold')
-  doc.text(`Total Amount: ${formatMoney(total)}`, pageWidth - margin - 110, y)
+  doc.setFontSize(10)
+  doc.setTextColor(0, 0, 0)
+  doc.text('QTY', margin + 5, y)
+  doc.text('DESCRIPTION', margin + 60, y)
+  doc.text('UNIT PRICE', pageWidth - margin - 120, y)
+  doc.text('AMOUNT', pageWidth - margin - 5, y, { align: 'right' })
 
+  // Table line
+  y += 8
+  doc.setDrawColor(200, 200, 200)
+  doc.setLineWidth(0.5)
+  doc.line(margin, y, pageWidth - margin, y)
+
+  // Products
+  let subtotal = 0
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+
+  cartItems.forEach((item) => {
+    y += 20
+    const qty = Number(item.qty || 0)
+    const lineTotal = getItemTotal(item) // Total for this line
+    const unitPrice = lineTotal / qty // Get unit price
+    subtotal += lineTotal
+
+    doc.text(String(qty), margin + 5, y)
+    doc.text(String(item.name || ''), margin + 60, y)
+    doc.text(formatMoney(unitPrice), pageWidth - margin - 120, y)
+    doc.text(formatMoney(lineTotal), pageWidth - margin - 5, y, { align: 'right' })
+  })
+
+  // Subtotal line
+  y += 15
+  doc.setDrawColor(200, 200, 200)
+  doc.line(margin, y, pageWidth - margin, y)
+
+  // Subtotal
   y += 20
   doc.setFont('helvetica', 'normal')
-  doc.text(`Cash Received: ${formatMoney(cashReceived.value)}`, pageWidth - margin - 114, y)
+  doc.text('Subtotal', pageWidth - margin - 120, y)
+  doc.text(formatMoney(subtotal), pageWidth - margin - 5, y, { align: 'right' })
 
+  // Sales Tax (6.25%)
+  y += 16
+  const taxRate = 0.0625 // 6.25%
+  const taxAmount = subtotal * taxRate
+  doc.text(`Sales Tax ${(taxRate * 100).toFixed(2)}%`, pageWidth - margin - 120, y)
+  doc.text(formatMoney(taxAmount), pageWidth - margin - 5, y, { align: 'right' })
+
+  // Total
   y += 20
-  const returnMoneyAmount = cashReceived.value - total
-  doc.text(`Return Money: ${formatMoney(returnMoneyAmount)}`, pageWidth - margin - 110, y)
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(11)
+  const finalTotal = subtotal + taxAmount
+  doc.text('TOTAL', pageWidth - margin - 120, y)
+  doc.text(formatMoney(finalTotal), pageWidth - margin - 5, y, { align: 'right' })
 
+  // Payment information
+  y += 30
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.text('Cash Received', pageWidth - margin - 120, y)
+  doc.text(formatMoney(cashReceived.value), pageWidth - margin - 5, y, { align: 'right' })
+
+  y += 16
+  const change = cashReceived.value - finalTotal
+  doc.text('Change', pageWidth - margin - 120, y)
+  doc.text(formatMoney(change), pageWidth - margin - 5, y, { align: 'right' })
+
+  // Signature area (if space allows)
+  if (y < pageHeight - 200) {
+    y += 60
+    doc.setFont('helvetica', 'italic')
+    doc.setFontSize(24)
+    doc.text('Thank you', margin + 80, y)
+  }
+
+  // Terms & Conditions at bottom
+  const termsY = pageHeight - 100
+  doc.setFontSize(11)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(220, 53, 69) // Red color
+  doc.text('TERMS & CONDITIONS', pageWidth - margin - 150, termsY)
+
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(0, 0, 0)
+  doc.text('Payment is due within 15 days', pageWidth - margin - 150, termsY + 15)
+  doc.text('Please make checks payable to: MART 2500', pageWidth - margin - 150, termsY + 28)
+
+  // Generate PDF blob and save
   const filename = `invoice_${orderId}.pdf`
   doc.save(filename)
+
+  // Also create blob URL for opening in new tab
+  const pdfBlob = doc.output('blob')
+  const pdfBlobUrl = URL.createObjectURL(pdfBlob)
+  window.open(pdfBlobUrl, '_blank')
+}
+
+function formatDateForInvoice(date: Date): string {
+  if (!date) return '—'
+  const d = new Date(date)
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const year = d.getFullYear()
+  return `${month}/${day}/${year}`
 }
 
 async function createCart() {

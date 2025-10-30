@@ -1,20 +1,53 @@
 <template>
-  <div class="min-h-screen bg-background pt-20">
-    <div class="flex justify-between items-center mb-6 px-6">
-      <div class="flex-1 flex justify-center">
-        <el-input
-          v-model="search"
-          placeholder="Search for an item..."
-          size="large"
-          class="w-full max-w-2xl h-14 custom-radius"
-          :prefix-icon="Search"
-          clearable
-        />
+  <div class="min-h-screen bg-background">
+    <!-- Header with Logo and Name -->
+    <div class="px-6 pt-6 pb-4">
+      <div>
+        <div class="flex items-center justify-between">
+          <!-- Logo and Name Section -->
+          <div class="flex items-center gap-4">
+            <div
+              class="w-16 h-16 bg-white rounded-xl shadow-lg p-2 flex items-center justify-center"
+            >
+              <img
+                src="/images/logo/logo.png"
+                alt="MART 2500 Logo"
+                class="w-full h-full object-contain"
+              />
+            </div>
+            <div>
+              <h1 class="text-3xl font-bold font-kantumruy text-gray-800">ម៉ាត ២៥០០</h1>
+              <p class="text-sm text-gray-700 font-gagalin">MART 2500 - Point of Sale</p>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex gap-3">
+            <el-button type="primary" @click="goToMenu" class="font-gagalin">
+              📋 View Menu
+            </el-button>
+            <el-button type="danger" plain @click="openLogoutModal" class="font-gagalin">
+              Logout
+            </el-button>
+          </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="flex justify-center mt-4">
+          <el-input
+            v-model="search"
+            placeholder="Search for an item..."
+            size="large"
+            class="w-full max-w-2xl h-14 custom-radius"
+            :prefix-icon="Search"
+            clearable
+          />
+        </div>
       </div>
-      <el-button type="danger" plain @click="openLogoutModal">Logout</el-button>
     </div>
 
-    <div class="h-[70vh] px-6 flex gap-4">
+    <!-- Main Content Area -->
+    <div class="px-6 pb-6 flex gap-4" style="height: calc(100vh - 220px)">
       <div class="w-2/3 bg-white rounded-3xl shadow p-4 overflow-y-auto">
         <h2 class="text-lg font-semibold mb-4 font-gagalin">Products</h2>
         <Productlist :products="filteredProducts" @add-to-cart="addToCart" />
@@ -64,6 +97,10 @@ function confirmLogout() {
   setTimeout(() => {
     router.replace('/')
   }, 1200)
+}
+
+function goToMenu() {
+  router.push({ name: 'menu' })
 }
 
 async function handleGetProduct() {

@@ -10,6 +10,7 @@ export default {
       },
       fontFamily: {
         gagalin: ['Gagalin', 'sans-serif'],
+        kantumruy: ['Kantumruy Pro', 'sans-serif'],
       },
     },
   },
