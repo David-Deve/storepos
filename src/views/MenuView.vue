@@ -4,9 +4,11 @@
     <div class="max-w-7xl mx-auto mb-8">
       <div class="text-center">
         <h1 class="text-4xl md:text-5xl font-gagalin text-gray-800 mb-4">Our Menu</h1>
-        <p class="text-xl text-gray-600 max-w-3xl mx-auto">Discover our delicious selection of products</p>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+          Discover our delicious selection of products
+        </p>
       </div>
-      
+
       <!-- Search Bar -->
       <div class="max-w-xl mx-auto mt-6">
         <el-input
@@ -27,42 +29,42 @@
 
     <!-- Products Grid -->
     <div v-else class="max-w-7xl mx-auto">
-      <transition-group 
-        name="product-list" 
-        tag="div" 
+      <transition-group
+        name="product-list"
+        tag="div"
         class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
       >
-        <div 
-          v-for="product in filteredProducts" 
+        <div
+          v-for="product in filteredProducts"
           :key="product.id"
           class="product-card bg-white rounded-xl shadow-md overflow-hidden transform transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
         >
           <!-- Product Image -->
           <div class="h-48 bg-gray-200 overflow-hidden">
-            <img 
-              :src="product.image || 'https://via.placeholder.com/300x200?text=Product+Image'" 
+            <img
+              :src="product.linkimg"
               :alt="product.name"
               class="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
             />
           </div>
-          
+
           <!-- Product Info -->
           <div class="p-5">
             <div class="flex justify-between items-start mb-2">
               <h3 class="font-gagalin text-xl text-gray-800 truncate">{{ product.name }}</h3>
-              <div 
-                v-if="product.discount && isDiscountValid(product)" 
+              <div
+                v-if="product.discount && isDiscountValid(product)"
                 class="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full"
               >
                 -{{ product.discount }}%
               </div>
             </div>
-            
+
             <!-- Price Section -->
             <div class="mb-3">
               <div class="flex items-center gap-2">
-                <p 
-                  v-if="product.discount && isDiscountValid(product)" 
+                <p
+                  v-if="product.discount && isDiscountValid(product)"
                   class="text-sm line-through text-gray-400"
                 >
                   ${{ product.price }}
@@ -75,18 +77,16 @@
                 Sale ends: {{ formatExpiryDate(product.discount_expired_at) }}
               </p>
             </div>
-            
+
             <!-- Stock Status -->
             <div class="flex items-center justify-between">
-              <span 
+              <span
                 class="px-2 py-1 text-xs rounded-full font-medium"
                 :class="product.qty > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
               >
                 {{ product.qty > 0 ? 'In Stock' : 'Out of Stock' }}
               </span>
-              <span class="text-sm text-gray-600">
-                {{ product.qty }} available
-              </span>
+              <span class="text-sm text-gray-600"> {{ product.qty }} available </span>
             </div>
           </div>
         </div>
