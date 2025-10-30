@@ -31,7 +31,6 @@
               ({{ product.discount }}% off)
             </span>
           </p>
-         
         </div>
       </div>
       <div class="grid grid-cols-2 gap-3 mb-5">
