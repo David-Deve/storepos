@@ -3,6 +3,7 @@ export interface Product {
   price: string | any
   name: string
   qty: number
+  linkimg?: string
   discount?: number
   discount_expired_at?: string
 }
